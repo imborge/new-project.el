@@ -7,6 +7,7 @@
 ;; Version: 20240617.1
 ;; Package-Requires: ((emacs "26.1") (templatel "20210902.228"))
 ;; URL: https://github.com/imborge/new-project.el
+;; Keywords: tools
 
 ;; This file is not part of GNU Emacs.
 
@@ -28,6 +29,8 @@
 
 ;;; Code:
 
+(require 'gv
+ )
 (require 'templatel)
 (require 'bookmark)
 (require 'dired)
@@ -50,7 +53,9 @@
   :type '(string))
 
 (defcustom new-project-bookmark-name "new-project-last-created-project"
-  "The name of the bookmark record containing the last created project.")
+  "The name of the bookmark record containing the last created project."
+  :group 'new-project
+  :type '(string))
 
 ;;;; Commands
 
@@ -68,10 +73,10 @@
   (interactive)
   (let* ((parent-dir (read-directory-name "Parent dir: " new-project-projects-dir))
          (project-name (read-string "Project name: "))
-         (project-dir (expand-file-name (new-project-sanitize-project-name project-name)
-                                        parent-dir))
+         ;; ( project-dir (expand-file-name (new-project-sanitize-project-name project-name)
+         ;;                                parent-dir))
          (project-template (completing-read "Project template:" (new-project-find-project-templates new-project-templates-dir) nil t)))
-    (new-project-new-project--create parent-dir
+    (new-project-create parent-dir
                                project-name
                                (expand-file-name project-template new-project-templates-dir))))
 
@@ -127,14 +132,13 @@ unless KEEP-CASE is non-nil."
     result))
 
 (defun new-project-make-parent-dirs (file)
-  (let ( (dir (file-name-directory file))
-         (yes-or-no-p (lambda (a &rest b) t)))
+  (let ( (dir (file-name-directory file)))
     (unless (file-exists-p dir)
       (make-directory dir t))))
 
 (defun new-project-write-file (text file-path base-path)
   "Write TEXT to FILE-PATH inside BASE-PATH, creating necessary directories."
-  (let* ((absolute-path (expand-file-name file-path base-path))
+    (let* ((absolute-path (expand-file-name file-path base-path))
          (dir (file-name-directory absolute-path)))
     ;; Ensure directory exists
     (new-project-make-parent-dirs dir)
@@ -178,8 +182,9 @@ Here's an example:
                           (with-temp-buffer
                             (insert-file-contents template-data-file-name)
                             (read (buffer-string))))))
-    (add-to-list 'template-data
-                 `(files . ,(new-project-list-template-files dir)))
+    (push
+     `(files . ,(new-project-list-template-files dir))
+     template-data)
     template-data))
 
 (defun new-project-template-val (sym template-data)
@@ -224,8 +229,8 @@ called with TEMPLATE-DATA as an argument."
 (defun new-project--empty-file-p (file)
   (zerop (or (file-attribute-size (file-attributes file)) 0)))
 
-(defun new-project-new-project--create (parent-dir project-name project-template)
-  "Create a new project in PARENT-DIR named PROJECT-NAME using the PROJECT-TEMPLATE."
+(defun new-project-create (parent-dir project-name project-template)
+  "Create a new project in PARENT-DIR named PROJECT-NAME using PROJECT-TEMPLATE."
   (let ((project-dir (expand-file-name (new-project-sanitize-project-name project-name) parent-dir)))
     (if (file-exists-p project-dir)
         (new-project--log-error "Project directory already exists: %s" project-dir )
@@ -234,8 +239,8 @@ called with TEMPLATE-DATA as an argument."
                     (sanitized-project-name . ,(new-project-sanitize-project-name project-name))
                     (parent-dir . ,parent-dir)
                     (project-dir . ,project-dir)))
-            (template-data (new-project-load-template project-template)))
-        (add-to-list 'vars (new-project-eval-template-vars (alist-get 'vars template-data)))
+            (template-data (new-project-load-template project-template))
+            (vars (new-project-eval-template-vars (alist-get 'vars template-data))))
         (dolist (file (alist-get 'files template-data))
           (let ((source-file (expand-file-name file project-template))
                 (dest-file (expand-file-name file project-dir)))
@@ -249,7 +254,7 @@ called with TEMPLATE-DATA as an argument."
                 (new-project-write-file contents file project-dir)))
             (new-project--log-info "File '%s' created." dest-file)))
 
-        (setf (alist-get 'vars  template-data) vars)
+        (setf  (alist-get 'vars template-data) vars)
         (new-project-eval-after template-data)
         ;; create bookmark
         (bookmark-store new-project-bookmark-name

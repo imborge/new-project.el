@@ -1,6 +1,6 @@
 (package "new-project"
          "20240617.1"
-         "Simple and powerful project templates in emacs")
+         "Simple and powerful project templates")
 
 (website-url "https://github.com/imborge/new-project.el")
 

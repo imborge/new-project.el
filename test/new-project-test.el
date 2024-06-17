@@ -36,13 +36,13 @@
            ,@body))
      (delete-directory ,temp-dir t)))
 
-(ert-deftest new-project-load-template ()
+(ert-deftest test--new-project-load-template ()
   "Tests that `new-project-load-template' returns alist describing template."
   (should (equal '((files . ("README.org")))
                  (new-project-load-template "./test/templates/test1/"))))
 
 
-(ert-deftest new-project-sanitize-project-name ()
+(ert-deftest test--new-project-sanitize-project-name ()
   "Tests that `new-project-sanitize-project-name' correctly sanitize project names."
   (should (equal "my_very_c00l_prject"
                  (new-project-sanitize-project-name "My! Very C00l prøject."))))
@@ -51,31 +51,31 @@
   "Template test"
   (should t))
 
-(ert-deftest new-project-find-project-templates ()
+(ert-deftest test--new-project-find-project-templates ()
   "Tests that it lists all subdirectories of templates-dir as templates."
   (let ((expected (sort '("test1" "test2" "rust") #'string<)))
     (should (equal expected (sort (new-project-find-project-templates "./test/templates") #'string<)))))
 
-(ert-deftest new-project-list-template-files ()
+(ert-deftest test--new-project-list-template-files ()
   (let ((files '("README.org" "src/main.rs")))
     (should (cl-every (lambda (item) (seq-contains-p files item))
                       (new-project-list-template-files "./test/templates/rust")))))
 
-(ert-deftest new-project-eval-template-vars ()
+(ert-deftest test--new-project-eval-template-vars ()
   (should (equal '((one . 1)
                    (five .  5))
                  (new-project-eval-template-vars '((one . 1)
                                                   (five . (+ 2 3)))))))
 
-(ert-deftest new-project--create ()
+(ert-deftest test--new-project-create ()
   "Tests that it creates the files in project dir."
   (with-temp-dir
    parent-dir
-   (new-project-new-project--create parent-dir "test project" "./test/templates/rust")
+   (new-project-create parent-dir "test project" "./test/templates/rust")
    (should (file-exists-p (expand-file-name "test_project/src/main.rs" parent-dir)))
    (should (file-exists-p (expand-file-name "test_project/README.org" parent-dir)))))
 
-(ert-deftest new-project-eval-after ()
+(ert-deftest test--new-project-eval-after ()
   "Tests that `new-project-eval-after' can eval and run lambdas."
   (with-temp-dir
    parent-dir
