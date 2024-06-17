@@ -3,8 +3,7 @@
 ;; Copyright (C) 2024  Børge André Jensen (imborge@proton.me)
 
 ;; Author: Børge André Jensen (imborge@proton.me)
-;; Maintainer: Børge André Jensen (imborge@proton.me)
-;; Version: 20240617.1
+;; Version: 0.1.0
 ;; Package-Requires: ((emacs "26.1") (templatel "20210902.228"))
 ;; URL: https://github.com/imborge/new-project.el
 ;; Keywords: tools
@@ -37,8 +36,8 @@
 
 (defgroup new-project nil
   "Settings for `new-project'."
-  :link '(url-link "https://baj.dev/new-project")
-  :group 'convenience)
+  :link '(url-link "https://github.com/imborge/new-project.el")
+  :group 'tools)
 
 (defcustom new-project-projects-dir nil
   "The default directory where new projects will be created."
@@ -58,33 +57,33 @@
 (defface new-project-log-date-face
   '((t :inherit font-lock-type-face))
   "Face for showing the date in new-project log buffer."
-  :group new-project)
+  :group 'new-project)
 
 (defface new-project-log-error-level-face
   '((t :inherit error))
   "Face for showing the `error' level in new-project log buffer."
-  :group new-project)
+  :group 'new-project)
 
 (defface new-project-log-warn-level-face
   '((t :inherit warning))
   "Face for showing the `warn' level in new-project log buffer."
-  :group new-project)
+  :group 'new-project)
 
 (defface new-project-log-info-level-face
   '((t :inherit info-node))
   "Face for showing the `info' level in new-project log buffer."
-  :group new-project)
+  :group 'new-project)
 
 (defface new-project-log-debug-level-face
   '((t :inherit shadow))
   "Face for showing the `debug' level in new-project log buffer."
-  :group new-project)
+  :group 'new-project)
 
 (defvar new-project-log-buffer-name "*new-project-log*"
   "Name of buffer used for logging new-project events.")
 
 (defvar new-project-log-level 'info
-  "Lowest typ of message to be logged."
+  "Lowest typ of message to be logged.")
 
 (defun new-project-log-buffer ()
   "Return the buffer for `new-project-log', creating if not exist."
@@ -104,7 +103,8 @@
     (otherwise -10)))
 
 (defun new-project-log (level fmt &rest objects)
-  "Display a message according to FMT and OBJECTS if LEVEL is >= `new-project-log--level'."
+  "Display a log message if LEVEL is >= `new-project-log--level'.
+FMT is a format string that may print OBJECTS."
   (let ((log-buffer (new-project-log-buffer))
         (log-level-face (cl-case level
                           (debug 'new-project-log-debug-level-face)
@@ -117,34 +117,29 @@
       (with-current-buffer log-buffer
         (goto-char (point-max))
         (insert
-         (format (concat "[" (propertize "%s" 'face new-project-log-date-face) "] "
+         (format (concat "[" (propertize "%s" 'face 'new-project-log-date-face) "] "
                          "[" (propertize "%s" 'face log-level-face) "]: %s\n")
                  (format-time-string "%Y-%m-%d %H:%M:%S")
                  level
-                 (apply #'format fmt objects))))))
-  )
+                 (apply #'format fmt objects)))))))
 
 ;;; Commands
 
-;;;###autoload
-  (defun new-project-goto-last-created-project ()
-    "Jump to the bookmark for the last created project."
-    (interactive)
-    (if-let ((bm (new-project-last-created-project)))
-        (bookmark-jump (new-project-last-created-project))
-      (new-project--log-info "No bookmark saved for last created project.")))
+(defun new-project-goto-last-created-project ()
+  "Jump to the bookmark for the last created project."
+  (interactive)
+  (if-let ((bm (new-project-last-created-project)))
+      (bookmark-jump (new-project-last-created-project))
+    (new-project--log-info "No bookmark saved for last created project.")))
 
-;;;###autoload
 (defun new-project-command ()
   "Interactively create a new project."
   (interactive)
   (let* ((parent-dir (read-directory-name "Parent dir: " new-project-projects-dir))
          (project-name (read-string "Project name: "))
-         ;; ( project-dir (expand-file-name (new-project-sanitize-project-name project-name)
-         ;;                                parent-dir)) (project-template (completing-read "Project template:" (new-project-find-project-templates new-project-templates-dir) nil t)))
     (new-project-create parent-dir
                                project-name
-                               (expand-file-name project-template new-project-templates-dir))))
+                               (expand-file-name project-template new-project-templates-dir)))))
 
 ;;;; Functions
 

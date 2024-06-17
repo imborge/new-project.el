@@ -1,12 +1,12 @@
-;;; new-project-test.el -- $description -*- lexical-binding: t -*-
+;;; new-project-test.el --- Simple and powerful project templates -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024  Børge André Jensen (imborge@proton.me)
 
 ;; Author: Børge André Jensen (imborge@proton.me)
-;; Maintainer: Børge André Jensen (imborge@proton.me)
-;; Version: 20240617.1
-;; Package-Requires: ((templatel "20210902.228"))
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "26.1") (templatel "20210902.228"))
 ;; URL: https://github.com/imborge/new-project.el
+;; Keywords: tools
 
 ;; This file is not part of GNU Emacs.
 
@@ -36,7 +36,7 @@
            ,@body))
      (delete-directory ,temp-dir t)))
 
-(ert-deftest test--new-project-load-template ()
+(ert-deftest new-project-load-template ()
   "Tests that `new-project-load-template' returns alist describing template."
   (should (equal '((files . ("README.org")))
                  (new-project-load-template "./test/templates/test1/"))))

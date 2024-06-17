@@ -1,5 +1,5 @@
 (package "new-project"
-         "20240617.1"
+         "20240617.4"
          "Simple and powerful project templates")
 
 (website-url "https://github.com/imborge/new-project.el")
