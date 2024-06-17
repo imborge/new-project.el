@@ -29,8 +29,6 @@
 
 ;;; Code:
 
-(require 'gv
- )
 (require 'templatel)
 (require 'bookmark)
 (require 'dired)
@@ -57,15 +55,84 @@
   :group 'new-project
   :type '(string))
 
-;;;; Commands
+(defface new-project-log-date-face
+  '((t :inherit font-lock-type-face))
+  "Face for showing the date in new-project log buffer."
+  :group new-project)
+
+(defface new-project-log-error-level-face
+  '((t :inherit error))
+  "Face for showing the `error' level in new-project log buffer."
+  :group new-project)
+
+(defface new-project-log-warn-level-face
+  '((t :inherit warning))
+  "Face for showing the `warn' level in new-project log buffer."
+  :group new-project)
+
+(defface new-project-log-info-level-face
+  '((t :inherit info-node))
+  "Face for showing the `info' level in new-project log buffer."
+  :group new-project)
+
+(defface new-project-log-debug-level-face
+  '((t :inherit shadow))
+  "Face for showing the `debug' level in new-project log buffer."
+  :group new-project)
+
+(defvar new-project-log-buffer-name "*new-project-log*"
+  "Name of buffer used for logging new-project events.")
+
+(defvar new-project-log-level 'info
+  "Lowest typ of message to be logged."
+
+(defun new-project-log-buffer ()
+  "Return the buffer for `new-project-log', creating if not exist."
+  (if-let ((buffer (get-buffer new-project-log-buffer-name)))
+      buffer
+    (with-current-buffer (generate-new-buffer new-project-log-buffer-name)
+      (special-mode)
+      (current-buffer))))
+
+(defun new-project-log--level (level)
+  "Numeric values for log LEVEL."
+  (cl-case level
+    (debug -10)
+    (info 0)
+    (warn 10)
+    (error 20)
+    (otherwise -10)))
+
+(defun new-project-log (level fmt &rest objects)
+  "Display a message according to FMT and OBJECTS if LEVEL is >= `new-project-log--level'."
+  (let ((log-buffer (new-project-log-buffer))
+        (log-level-face (cl-case level
+                          (debug 'new-project-log-debug-level-face)
+                          (info 'new-project-log-info-level-face)
+                          (warn 'new-project-log-warn-level-face)
+                          (error 'new-project-log-error-level-face)))
+        (inhibit-read-only t))
+    (when (>= (new-project-log--level level)
+              (new-project-log--level new-project-log-level))
+      (with-current-buffer log-buffer
+        (goto-char (point-max))
+        (insert
+         (format (concat "[" (propertize "%s" 'face new-project-log-date-face) "] "
+                         "[" (propertize "%s" 'face log-level-face) "]: %s\n")
+                 (format-time-string "%Y-%m-%d %H:%M:%S")
+                 level
+                 (apply #'format fmt objects))))))
+  )
+
+;;; Commands
 
 ;;;###autoload
-(defun new-project-goto-last-created-project ()
-  "Jump to the bookmark for the last created project."
-  (interactive)
-  (if-let ((bm (new-project-last-created-project)))
-      (bookmark-jump (new-project-last-created-project))
-    (new-project--log-info "No bookmark saved for last created project.")))
+  (defun new-project-goto-last-created-project ()
+    "Jump to the bookmark for the last created project."
+    (interactive)
+    (if-let ((bm (new-project-last-created-project)))
+        (bookmark-jump (new-project-last-created-project))
+      (new-project--log-info "No bookmark saved for last created project.")))
 
 ;;;###autoload
 (defun new-project-command ()
@@ -74,30 +141,12 @@
   (let* ((parent-dir (read-directory-name "Parent dir: " new-project-projects-dir))
          (project-name (read-string "Project name: "))
          ;; ( project-dir (expand-file-name (new-project-sanitize-project-name project-name)
-         ;;                                parent-dir))
-         (project-template (completing-read "Project template:" (new-project-find-project-templates new-project-templates-dir) nil t)))
+         ;;                                parent-dir)) (project-template (completing-read "Project template:" (new-project-find-project-templates new-project-templates-dir) nil t)))
     (new-project-create parent-dir
                                project-name
                                (expand-file-name project-template new-project-templates-dir))))
 
 ;;;; Functions
-
-(defun new-project--log (level format-string &optional args)
-  ""
-  (cl-case level
-    ((info warning error)
-     (funcall 'message (concat
-                        (format "[%s] "level)
-                        (format  format-string args))))))
-
-(defun new-project--log-info (format-string &optional args)
-  (new-project--log 'info format-string args))
-
-(defun new-project--log-warning (format-string &optional args)
-  (new-project--log 'warning format-string args))
-
-(defun new-project--log-error (format-string &optional args)
-  (new-project--log 'error format-string args))
 
 (defun new-project-sanitize-project-name (project-name &optional keep-case)
   "Sanitize PROJECT-NAME and converting to lowercase.
@@ -131,7 +180,8 @@ unless KEEP-CASE is non-nil."
       (recursively-list-files dir))
     result))
 
-(defun new-project-make-parent-dirs (file)
+(defun new-project--make-parent-dirs (file)
+  "Create parent dirs for FILE if not existeng."
   (let ( (dir (file-name-directory file)))
     (unless (file-exists-p dir)
       (make-directory dir t))))
@@ -227,6 +277,7 @@ called with TEMPLATE-DATA as an argument."
             (funcall result template-data))))))
 
 (defun new-project--empty-file-p (file)
+  "Return t if FILE is empty."
   (zerop (or (file-attribute-size (file-attributes file)) 0)))
 
 (defun new-project-create (parent-dir project-name project-template)
