@@ -14,9 +14,9 @@ EASK ?= eask
 # You can add or remove any commands here
 #
 # (Option 1): Basic for beginner, only tests for package's installation
-ci: clean package install compile
+#ci: clean package install compile
 # (Option 2): Advanced for a high-quality package
-#ci: clean package install compile checkdoc lint test
+ci: clean package install compile checkdoc lint test
 
 # Build an package artefact, default to `dist` folder
 #

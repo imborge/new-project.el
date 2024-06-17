@@ -49,7 +49,4 @@ jobs:
 
     - name: Run tests
       run: |
-        eask clean all
-        eask package
-        eask install
-        eask compile
+        make ci
