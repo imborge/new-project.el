@@ -1,11 +1,11 @@
-;;; new-project.el --- Simple and powerful project templates in emacs. -*- lexical-binding: t -*-
+;;; new-project.el --- Simple and powerful project templates -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024  Børge André Jensen (imborge@proton.me)
 
 ;; Author: Børge André Jensen (imborge@proton.me)
 ;; Maintainer: Børge André Jensen (imborge@proton.me)
-;; Version: 20240616.1
-;; Package-Requires: ((templatel "20210902.228"))
+;; Version: 20240617.1
+;; Package-Requires: ((emacs "26.1") (templatel "20210902.228"))
 ;; URL: https://github.com/imborge/new-project.el
 
 ;; This file is not part of GNU Emacs.
@@ -76,8 +76,6 @@
                                (expand-file-name project-template new-project-templates-dir))))
 
 ;;;; Functions
-
-;;;;;; Public
 
 (defun new-project--log (level format-string &optional args)
   ""
@@ -223,7 +221,7 @@ called with TEMPLATE-DATA as an argument."
           (when (functionp result)
             (funcall result template-data))))))
 
-(defun empty-file-p (file)
+(defun new-project--empty-file-p (file)
   (zerop (or (file-attribute-size (file-attributes file)) 0)))
 
 (defun new-project-new-project--create (parent-dir project-name project-template)
@@ -242,7 +240,7 @@ called with TEMPLATE-DATA as an argument."
           (let ((source-file (expand-file-name file project-template))
                 (dest-file (expand-file-name file project-dir)))
             (new-project-make-parent-dirs dest-file)
-            (if (empty-file-p source-file)
+            (if (new-project--empty-file-p source-file)
                 (progn
                   (new-project--log-warning "Source file '%s' is empty." source-file)
                   (copy-file source-file dest-file))

@@ -4,7 +4,7 @@
 
 ;; Author: Børge André Jensen (imborge@proton.me)
 ;; Maintainer: Børge André Jensen (imborge@proton.me)
-;; Version: 20240616.1
+;; Version: 20240617.1
 ;; Package-Requires: ((templatel "20210902.228"))
 ;; URL: https://github.com/imborge/new-project.el
 
