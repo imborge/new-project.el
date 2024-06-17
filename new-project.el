@@ -3,7 +3,7 @@
 ;; Copyright (C) 2024  Børge André Jensen (imborge@proton.me)
 
 ;; Author: Børge André Jensen (imborge@proton.me)
-;; Version: 0.1.0
+;; Version: 20240617.4
 ;; Package-Requires: ((emacs "26.1") (templatel "20210902.228"))
 ;; URL: https://github.com/imborge/new-project.el
 ;; Keywords: tools
@@ -54,46 +54,46 @@
   :group 'new-project
   :type '(string))
 
-(defface new-project-log-date-face
+(defface new-project-logdate-face
   '((t :inherit font-lock-type-face))
   "Face for showing the date in new-project log buffer."
   :group 'new-project)
 
-(defface new-project-log-error-level-face
+(defface new-project-logerror-level-face
   '((t :inherit error))
   "Face for showing the `error' level in new-project log buffer."
   :group 'new-project)
 
-(defface new-project-log-warn-level-face
+(defface new-project-logwarn-level-face
   '((t :inherit warning))
   "Face for showing the `warn' level in new-project log buffer."
   :group 'new-project)
 
-(defface new-project-log-info-level-face
+(defface new-project-loginfo-level-face
   '((t :inherit info-node))
   "Face for showing the `info' level in new-project log buffer."
   :group 'new-project)
 
-(defface new-project-log-debug-level-face
+(defface new-project-logdebug-level-face
   '((t :inherit shadow))
   "Face for showing the `debug' level in new-project log buffer."
   :group 'new-project)
 
-(defvar new-project-log-buffer-name "*new-project-log*"
+(defvar new-project-logbuffer-name "*new-project-log*"
   "Name of buffer used for logging new-project events.")
 
 (defvar new-project-log-level 'info
   "Lowest typ of message to be logged.")
 
-(defun new-project-log-buffer ()
+(defun new-project-logbuffer ()
   "Return the buffer for `new-project-log', creating if not exist."
-  (if-let ((buffer (get-buffer new-project-log-buffer-name)))
+  (if-let ((buffer (get-buffer new-project-logbuffer-name)))
       buffer
-    (with-current-buffer (generate-new-buffer new-project-log-buffer-name)
+    (with-current-buffer (generate-new-buffer new-project-logbuffer-name)
       (special-mode)
       (current-buffer))))
 
-(defun new-project-log--level (level)
+(defun new-project--log-level (level)
   "Numeric values for log LEVEL."
   (cl-case level
     (debug -10)
@@ -103,22 +103,22 @@
     (otherwise -10)))
 
 (defun new-project-log (level fmt &rest objects)
-  "Display a log message if LEVEL is >= `new-project-log--level'.
+  "Display a log message if LEVEL is >= `new-project-log-level'.
 FMT is a format string that may print OBJECTS."
-  (let ((log-buffer (new-project-log-buffer))
+  (let ((log-buffer (new-project-logbuffer))
         (log-level-face (cl-case level
-                          (debug 'new-project-log-debug-level-face)
-                          (info 'new-project-log-info-level-face)
-                          (warn 'new-project-log-warn-level-face)
-                          (error 'new-project-log-error-level-face)))
+                          (debug 'new-project-logdebug-level-face)
+                          (info 'new-project-loginfo-level-face)
+                          (warn 'new-project-logwarn-level-face)
+                          (error 'new-project-logerror-level-face)))
         (inhibit-read-only t))
-    (when (>= (new-project-log--level level)
-              (new-project-log--level new-project-log-level))
+    (when (>= (new-project--log-level level)
+              (new-project--log-level new-project-log-level))
       (with-current-buffer log-buffer
         (goto-char (point-max))
         (insert
-         (format (concat "[" (propertize "%s" 'face 'new-project-log-date-face) "] "
-                         "[" (propertize "%s" 'face log-level-face) "]: %s\n")
+         (format (concat "[" (propertize "%s" 'face 'new-project-logdate-face) "] "
+                         "[" (propertize "%s" 'face 'log-level-face) "]: %s\n")
                  (format-time-string "%Y-%m-%d %H:%M:%S")
                  level
                  (apply #'format fmt objects)))))))
@@ -130,16 +130,20 @@ FMT is a format string that may print OBJECTS."
   (interactive)
   (if-let ((bm (new-project-last-created-project)))
       (bookmark-jump (new-project-last-created-project))
-    (new-project--log-info "No bookmark saved for last created project.")))
+    (new-project-log info "No bookmark saved for last created project.")))
 
 (defun new-project-command ()
   "Interactively create a new project."
   (interactive)
-  (let* ((parent-dir (read-directory-name "Parent dir: " new-project-projects-dir))
+  (let* ((parent-dir (read-directory-name "Parent dir: "
+                                          new-project-projects-dir))
          (project-name (read-string "Project name: "))
+         (project-template (completing-read "Choose template: "
+                                            (lambda ()
+                                              (new-project-find-project-templates new-project-templates-dir)))))
     (new-project-create parent-dir
-                               project-name
-                               (expand-file-name project-template new-project-templates-dir)))))
+                        project-name
+                        (expand-file-name project-template new-project-templates-dir)) ))
 
 ;;;; Functions
 
@@ -186,7 +190,7 @@ unless KEEP-CASE is non-nil."
     (let* ((absolute-path (expand-file-name file-path base-path))
          (dir (file-name-directory absolute-path)))
     ;; Ensure directory exists
-    (new-project-make-parent-dirs dir)
+    (new-project--make-parent-dirs dir)
     ;; Write text to file
     (with-temp-buffer
       (insert text)
@@ -227,9 +231,8 @@ Here's an example:
                           (with-temp-buffer
                             (insert-file-contents template-data-file-name)
                             (read (buffer-string))))))
-    (push
-     `(files . ,(new-project-list-template-files dir))
-     template-data)
+    (push `(files . ,(new-project-list-template-files dir))
+          template-data)
     template-data))
 
 (defun new-project-template-val (sym template-data)
@@ -279,26 +282,30 @@ called with TEMPLATE-DATA as an argument."
   "Create a new project in PARENT-DIR named PROJECT-NAME using PROJECT-TEMPLATE."
   (let ((project-dir (expand-file-name (new-project-sanitize-project-name project-name) parent-dir)))
     (if (file-exists-p project-dir)
-        (new-project--log-error "Project directory already exists: %s" project-dir )
-      (new-project--log-info "Creating new project using '%s' as template." project-template)
+        (new-project-log 'error "Project directory already exists: %s" project-dir )
+      (new-project-log 'info "Creating new project using '%s' as template." project-template)
       (let ((vars `((project-name . ,project-name)
                     (sanitized-project-name . ,(new-project-sanitize-project-name project-name))
                     (parent-dir . ,parent-dir)
                     (project-dir . ,project-dir)))
-            (template-data (new-project-load-template project-template))
-            (vars (new-project-eval-template-vars (alist-get 'vars template-data))))
+            (template-data (new-project-load-template project-template)))
+
+        (setf (alist-get 'vars template-data)
+              (append vars
+                      (new-project-eval-template-vars (alist-get 'vars template-data))))
+
         (dolist (file (alist-get 'files template-data))
           (let ((source-file (expand-file-name file project-template))
                 (dest-file (expand-file-name file project-dir)))
-            (new-project-make-parent-dirs dest-file)
+            (new-project--make-parent-dirs dest-file)
             (if (new-project--empty-file-p source-file)
                 (progn
-                  (new-project--log-warning "Source file '%s' is empty." source-file)
+                  (new-project-log 'warning "Source file '%s' is empty." source-file)
                   (copy-file source-file dest-file))
               (let ((contents
                      (templatel-render-file (expand-file-name file project-template) vars)))
                 (new-project-write-file contents file project-dir)))
-            (new-project--log-info "File '%s' created." dest-file)))
+            (new-project-log 'info "File '%s' created." dest-file)))
 
         (setf  (alist-get 'vars template-data) vars)
         (new-project-eval-after template-data)
