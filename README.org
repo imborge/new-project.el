@@ -1,0 +1,282 @@
+#+title: new-project.el
+
+Simple and powerful project templates using emacs.
+
+* Features
+
+- create project templates using [[https://github.com/clarete/templatel][templatel]], a jinja-like templating language for emacs.
+- define template variables using elisp.
+- run elisp code after the project is created.
+
+* Installation
+** Manual installation
+
+*** Downloading
+
+#+begin_src bash
+  mkdir -p ~/.emacs.d/site-lisp/
+  git clone git@github.com:imborge/new-project.el.git ~/.emacs.d/site-lisp/new-project
+#+end_src
+
+*** Configuring emacs
+
+#+begin_src emacs-lisp
+  (add-to-list 'load-path "~/.emacs.d/site-lisp/new-project")
+  (require 'new-project)
+
+  ;; Default location to save new projects
+  (setq new-project-projects-dir "~/Projects")
+  ;; The directory containing your project templates
+  (setq new-project-templates-dir "~/.emacs.d/site-lisp/new-project/templates")
+#+end_src
+
+** straight.el
+
+#+begin_src emacs-lisp
+  (straight-use-package
+   '(new-project :type git
+                 :host github
+                 :repo "imborge/new-project.el"))
+
+  ;; Default location to save new projects
+  (setq new-project-projects-dir "~/Projects")
+  ;; The directory containing your project templates
+  (setq new-project-templates-dir "~/.emacs.d/site-lisp/new-project/templates")
+#+end_src
+
+* Usage
+
+A =new-project.el= project template is at its simplest a directory of files that will be copied to a new directory.
+
+Files are rendered using templatel, which let you use variables, conditionals, loops and other
+contructs in the style of jinja, handlebars, etc.
+
+To create a new project template, create a new folder inside ~new-project-templates-dir~, this will make it easy
+for =new-project.el= to find them.
+
+** Creating a project template
+
+In this example we will create a simple Go project template for demostratory purposes.
+
+First create a new directory inside ~new-project-templates-dir~ and cd into it, if you followed the setup above that would be =~/.emacs.d/site-lisp/new-project/templates=:
+
+#+begin_src bash
+  mkdir -p ~/.emacs.d/site-lisp/new-project/templates/my_go_template
+  cd ~/.emacs.d/site-lisp/new-project/templates/my_go_template
+#+end_src
+
+Now lets add some files:
+
+I'll create a file named =main.go=, and add the following content to it:
+
+#+begin_src go
+  func main() {
+        fmt.Println("Hello from my_go_template");
+  }
+#+end_src
+
+I like to use org mode for project management, so I'll create a file named =todo.org= in my template as well,
+and add this content to it:
+
+#+begin_src org
+  ,#+TILE: {{ project-name }} tasks
+
+  ,* Goal/Rationale
+
+  ,* Tasks
+  ,** TODO Write down goal/rationale for the project
+  ,** TODO Create a task
+#+end_src
+
+This is a pretty boring template, lets add a =Makefile= for common build tasks:
+
+#+begin_src GNUMakefile
+build:
+    go build
+
+run:
+    go run
+
+build-css:
+    {{ build-css-command }}
+#+end_src
+
+Here it gets a bit more instersting. The ~build-css-command~ is not a standard template variable. To make
+=new-project.el= know how to resolve it, we have to make a file named =template.el= in our project template
+root.
+
+=template.el= is a special file to =new-project.el=, it lets you specify template variables and how they are
+resolved using =emacs lisp= - this makes =new-project.el= both simple and powerful.
+
+The structure of =template.el= is an association list. Lets create it and I'll explain more after:
+
+#+begin_src emacs-lisp
+  ((vars . ((build-css-command . (completing-read "CSS build command: " '("tailwind") nil t)))))
+#+end_src
+
+At the root-level this is a list of key-value pairs. There's one key-value pair, where the key is the symbol
+~vars~, and the value is an ~alist~ with one key-value pair, the key is the symbol ~build-css-command~ and the value
+is an expression.
+
+The expression is being read and evaluated by =template.el= as a function invocation, calling the function
+~completing-read~ with the rest of the elements in the list an arguments.
+
+~completing-read~ is a function that prompts the user for input and provides some completions ("options").
+
+- The first argument is the ~prompt~, in this case it asks the user for "CSS build command".
+- The second argument is ~completions~, where I provide a list with a single element, "tailwind".
+- then there's an argument for ~predcate~ which filters the completions, we dont want it here ~nil~ is provided
+- Finally there's a parameter for ~require-match~, I have provided ~t~, which means the user must choose an input
+  from the collections. (They can still enter no value though)
+
+Depending on your familiarity with lisps, this might look a bit wonky and way too many parenthesis, but it is
+simpler than it looks and is *quite powerful*, and I'll gieve a brief explaination on this in the next section.
+
+*** A tangent on lisp data structures and syntax
+
+I told you that the structure of =template.el= is an =association list=, commonly referred to as an =alist=.
+
+So, what is an association list? It's basically /a list of key-value pairs/, you may want to think of
+this as a dictionary or hashmap.
+
+A key-value pair is written as ~(key . value)~ -- note the dot in between.
+
+The key-value pairs here is actually an object/structure called =cons cells=. A cons cell is an object holding
+two values/pointers and is often used as a building block to make more complex structures.
+
+The left part of a =cons cell= is called ~car~, the right hand is called ~cdr~. This might seem arbitrary, and if
+you want a mnemonic for this you can think that /c*a*r/ comes before /c*d*r/.
+
+They are actually acronyms (thanks [[https://en.wikipedia.org/wiki/CAR_and_CDR][wikipedia]]!)
+
+- car is for contents of the address part of register.
+- cdr is for the contents of the decrement part of register.
+
+If you are anything like me, that naming isn't really helpful for anything other than peeking my interest.
+
+A list is written as ~(item1 item2 itemN)~, so an ~alist~, being a list of these key-value pairs is therefore
+written like this in our =template.el= file:
+
+#+begin_src emacs-lisp
+  ((key1 . val1)
+   (key2 . val2))
+#+end_src
+
+/Note: In lisps, lists are also used to invoke functions, with the first item in the list being the function that is
+called, and the rest of the items as the arguments./ You'll commonly see lists prefixed with a tick like this:
+~'(item1 item2)~ or backtick combined with a comma: ~`(item1 ,item2)~. This is called /quoting/ and lets the interpreter know that we want this
+to be interpreted literally as list, not a function call. Backticks allow the programmer to interleave evaluation where they want by adding a comma (,)
+in front of the item they want evaluated.
+
+*** Conditionals
+
+You might've spotten an issue with our =Makefile= template. ~build-css-command~ can only be two possible values:
+~"tailwind"~ or ~nil~. Neither will work.
+
+Lets introduce templatel =conditionals=. If the user chose ~"tailwind"~ then use the tailwind cli, if the user chose
+nothing, omit the ~build-css~ /target/ from the Makefile.
+
+Lets change the template for =Makefile=, introducing the conditionals:
+
+#+begin_src GNUMakefile
+build:
+    go build
+
+run:
+    go run
+
+{% if build-css-command == "tailwind" %}
+build-css:
+    npx tailwindcss build -i input.css -o public/style.css
+
+{% endif %}
+#+end_src
+
+Lets also add =input.css=, =tailwind.config.js= to our template, starting with =input.css=:
+
+#+begin_src css
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
+#+end_src
+
+Then add =tailwind.config.js=:
+
+#+begin_src js
+  /** @type {import('tailwindcss').Config} */
+  module.exports = {
+    content: ["./templates/**/*.{html,js}"],
+    theme: {
+      extend: {},
+    },
+    plugins: [],
+  }
+#+end_src
+
+We'll run a command /after/ a project has been created using our template to create a =package.json= and install some dependencies from NPM.
+
+We'll have to go back and edit our =template.el= file. =new-project.el= can contain a key-value pair with the key ~after~.
+
+~after~ is a list of expressions to run /after/ a project has been created using the template. =new-project.el= evaluates every expression in this list.
+if the list evaluates to a ~function~, it will be called with a single argument: ~template-data~.
+
+All expressions in ~after~ are being run inside ~project-dir~, the new project created from our template.
+
+~template-data~ is an ~alist~ like this:
+
+#+begin_src emacs-lisp
+  ((vars . vars-alist)
+   (files . template-file-list)
+   (after . after-expression-list))
+#+end_src
+
+Looks familiar? Good. The difference between this and =template.el= is only that the ~vars-alist~ in the ~(vars
+. vars-alist)~ pair has been evaluated now, containing the values of the template variables instead of the
+expressions to compute them -- in addition to some standard variablies like ~project-name~, ~project-dir~,
+~sanitized-project-name~.
+
+Now lets make the necessary changes to =template.el= to run ~npm init~ inside the ~project-dir~, and then run
+~npm install -D tailwindcss~ to install tailwind, but only if we did choose ~"tailwind"~ as the css build tool.
+
+As we need access to the ~template-data~ alist, we must make an expression that evaluates to a function that
+takes one argument:
+
+#+begin_src emacs-lisp
+  ((vars . ((build-css-command . (completing-read "CSS build command: " '("tailwind") nil t))))
+   (after . ((lambda (template-data)
+               ;; new-project-template-val is a helper method provided to simplify
+               ;; accessing template variables.
+               (when (string= "tailwind" (new-project-template-val 'css-build-tool template-data))
+                 ;; run this command only when user chose "tailwind"
+                 (async-shell-command "npm init -y && npm install -D tailwindcss")
+                 )
+             )))
+#+end_src
+
+Lets also remove the =tailwind.config.js= and =input.css= if the user didn't choose ~"tailwind"~.
+
+We can add another lambda expression to our ~after~-list, or change the ~where~ to an ~if~ and delete the files in
+the else clause:
+
+#+begin_src emacs-lisp
+  ((vars . ((build-css-command . (completing-read "CSS build command: " '("tailwind") nil t))))
+   (after . ((lambda (template-data)
+               ;; new-project-template-val is a helper method provided to simplify
+               ;; accessing template variables.
+               (if (string= "tailwind" (new-project-template-val 'css-build-tool template-data))
+                   ;; run this command only when user chose "tailwind"
+                   (async-shell-command "npm init -y && npm install -D tailwindcss")
+                 ;; run shis command when the user didnt choose "tailwind"
+                 (async-shell-command "rm input.css tailwind.config.js")))))
+#+end_src
+
+
+** Creating a new project from a template
+
+** Functions
+
+*** ~new-project-interactive~
+
+An interative command to create a new project. This is what I expect most to use.
+
+*** ~new-project--create~
