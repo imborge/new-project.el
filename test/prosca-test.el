@@ -1,4 +1,4 @@
-;;; new-project-test.el --- Simple and powerful project templates -*- lexical-binding: t -*-
+;;; prosca-test.el --- Simple and powerful project templates -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2024  Børge André Jensen (imborge@proton.me)
 
@@ -20,7 +20,7 @@
 ;;; Commentary:
 ;;; Code:
 (require 'ert)
-(require 'new-project)
+(require 'prosca)
 
 (defmacro with-temp-dir (temp-dir &rest body)
   "Create temporary directory, binding it to TEMP-DIR, run BODY and delete TEMP-DIR when completed."
@@ -30,53 +30,53 @@
            ,@body))
      (delete-directory ,temp-dir t)))
 
-(ert-deftest new-project-load-template ()
-  "Tests that `new-project-load-template' returns alist describing template."
+(ert-deftest prosca--load-template ()
+  "Tests that `prosca--load-template' returns alist describing template."
   (should (equal '((files . ("README.org")))
-                 (new-project-load-template "./test/templates/test1/"))))
+                 (prosca--load-template "./test/templates/test1/"))))
 
 
-(ert-deftest new-project-sanitize-project-name ()
-  "Tests that `new-project-sanitize-project-name' correctly sanitize project names."
+(ert-deftest prosca--sanitize-project-name ()
+  "Tests that `prosca--sanitize-project-name' correctly sanitize project names."
   (should (equal "my_very_c00l_prject"
-                 (new-project-sanitize-project-name "My! Very C00l prøject."))))
+                 (prosca--sanitize-project-name "My! Very C00l prøject."))))
 
-(ert-deftest new-project-find-project-templates ()
+(ert-deftest prosca--find-project-templates ()
   "Tests that it lists all subdirectories of templates-dir as templates."
   (let ((expected (sort '("test1" "test2" "rust") #'string<)))
-    (should (equal expected (sort (new-project-find-project-templates "./test/templates") #'string<)))))
+    (should (equal expected (sort (prosca--find-project-templates "./test/templates") #'string<)))))
 
-(ert-deftest new-project-list-template-files ()
+(ert-deftest prosca--list-template-files ()
   (let ((files '("README.org" "src/main.rs")))
     (should (cl-every (lambda (item) (seq-contains-p files item))
-                      (new-project-list-template-files "./test/templates/rust")))))
+                      (prosca--list-template-files "./test/templates/rust")))))
 
-(ert-deftest new-project-eval-template-vars ()
+(ert-deftest prosca--eval-template-vars ()
   (should (equal '((one . 1)
                    (five .  5))
-                 (new-project-eval-template-vars '((one . 1)
-                                                  (five . (+ 2 3)))))))
+                 (prosca--eval-template-vars '((one . 1)
+                                               (five . (+ 2 3)))))))
 
-(ert-deftest new-project-create ()
+(ert-deftest prosca--create ()
   "Tests that it creates the files in project dir."
   (with-temp-dir
    parent-dir
-   (new-project-create parent-dir "test project" "./test/templates/rust")
+   (prosca--create parent-dir "test project" "./test/templates/rust")
    (should (file-exists-p (expand-file-name "test_project/src/main.rs" parent-dir)))
    (should (file-exists-p (expand-file-name "test_project/README.org" parent-dir)))))
 
-(ert-deftest new-project-eval-after ()
-  "Tests that `new-project-eval-after' can eval and run lambdas."
+(ert-deftest prosca--eval-after ()
+  "Tests that `prosca--eval-after' can eval and run lambdas."
   (with-temp-dir
    parent-dir
    (let* (;; (data (ne))
           (project-name-sanitized "a_project")
-          (data (new-project-eval-after `((vars . ((project-dir . ,(expand-file-name project-name-sanitized parent-dir))))
-                                          (after . ((lambda (data)
-                                                      (let ((file (expand-file-name "after" (new-project-template-val 'project-dir data))))
-                                                        (new-project--make-parent-dirs file)
-                                                        (write-file file)))))))))
+          (data (prosca--eval-after `((vars . ((project-dir . ,(expand-file-name project-name-sanitized parent-dir))))
+                                      (after . ((lambda (data)
+                                                  (let ((file (expand-file-name "after" (prosca--template-val 'project-dir data))))
+                                                    (prosca--make-parent-dirs file)
+                                                    (write-file file)))))))))
      (should (file-exists-p (expand-file-name "a_project/after" parent-dir))))))
 
-(provide 'new-project-test)
-;;; new-project-test.el ends here
+(provide 'prosca-test)
+;;; prosca-test.el ends here

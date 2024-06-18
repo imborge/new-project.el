@@ -1,4 +1,4 @@
-#+title: new-project.el
+#+title: prosca
 
 Simple and powerful project templates using emacs.
 
@@ -15,54 +15,55 @@ Simple and powerful project templates using emacs.
 
 #+begin_src bash
   mkdir -p ~/.emacs.d/site-lisp/
-  git clone git@github.com:imborge/new-project.el.git ~/.emacs.d/site-lisp/new-project
+  git clone git@github.com:imborge/prosca.git ~/.emacs.d/site-lisp/prosca
 #+end_src
 
 *** Configuring emacs
 
 #+begin_src emacs-lisp
-  (add-to-list 'load-path "~/.emacs.d/site-lisp/new-project")
-  (require 'new-project)
+  (add-to-list 'load-path "~/.emacs.d/site-lisp/prosca")
+  (require 'prosca)
 
   ;; Default location to save new projects
-  (setq new-project-projects-dir "~/Projects")
+  (setq prosca-projects-dir "~/Projects")
   ;; The directory containing your project templates
-  (setq new-project-templates-dir "~/.emacs.d/site-lisp/new-project/templates")
+  (setq prosca-templates-dir "~/.emacs.d/site-lisp/prosca/templates")
 #+end_src
 
 ** straight.el
 
 #+begin_src emacs-lisp
   (straight-use-package
-   '(new-project :type git
+   '(prosca :type git
                  :host github
-                 :repo "imborge/new-project.el"))
+                 :repo "imborge/prosca"))
 
   ;; Default location to save new projects
-  (setq new-project-projects-dir "~/Projects")
+  (setq prosca-projects-dir "~/Projects")
   ;; The directory containing your project templates
-  (setq new-project-templates-dir "~/.emacs.d/site-lisp/new-project/templates")
+  (setq prosca-templates-dir "~/.emacs.d/site-lisp/prosca/templates")
 #+end_src
 
 * Usage
 
-A =new-project.el= project template is at its simplest a directory of files that will be copied to a new directory.
+A =prosca= project template is at its simplest a directory of files that will be copied to a new directory.
 
 Files are rendered using templatel, which let you use variables, conditionals, loops and other
 contructs in the style of jinja, handlebars, etc.
 
-To create a new project template, create a new folder inside ~new-project-templates-dir~, this will make it easy
-for =new-project.el= to find them.
+To create a new project template, create a new folder inside ~prosca-templates-dir~, this will make it easy
+for =prosca= to find them.
 
 ** Creating a project template
 
 In this example we will create a simple Go project template for demostratory purposes.
 
-First create a new directory inside ~new-project-templates-dir~ and cd into it, if you followed the setup above that would be =~/.emacs.d/site-lisp/new-project/templates=:
+First create a new directory inside ~prosca-templates-dir~ and cd into it, if you followed the setup above that
+would be =~/.emacs.d/site-lisp/prosca/templates=:
 
 #+begin_src bash
-  mkdir -p ~/.emacs.d/site-lisp/new-project/templates/my_go_template
-  cd ~/.emacs.d/site-lisp/new-project/templates/my_go_template
+  mkdir -p ~/.emacs.d/site-lisp/prosca/templates/my_go_template
+  cd ~/.emacs.d/site-lisp/prosca/templates/my_go_template
 #+end_src
 
 Now lets add some files:
@@ -102,11 +103,11 @@ build-css:
 #+end_src
 
 Here it gets a bit more instersting. The ~build-css-command~ is not a standard template variable. To make
-=new-project.el= know how to resolve it, we have to make a file named =template.el= in our project template
+=prosca= know how to resolve it, we have to make a file named =template.el= in our project template
 root.
 
-=template.el= is a special file to =new-project.el=, it lets you specify template variables and how they are
-resolved using =emacs lisp= - this makes =new-project.el= both simple and powerful.
+=template.el= is a special file to =prosca=, it lets you specify template variables and how they are
+resolved using =emacs lisp= - this makes =prosca= both simple and powerful.
 
 The structure of =template.el= is an association list. Lets create it and I'll explain more after:
 
@@ -145,7 +146,7 @@ The key-value pairs here is actually an object/structure called =cons cells=. A 
 two values/pointers and is often used as a building block to make more complex structures.
 
 The left part of a =cons cell= is called ~car~, the right hand is called ~cdr~. This might seem arbitrary, and if
-you want a mnemonic for this you can think that /c*a*r/ comes before /c*d*r/.
+you want a mnemonic for this you can think that /cAr/ comes before /cDr/.
 
 They are actually acronyms (thanks [[https://en.wikipedia.org/wiki/CAR_and_CDR][wikipedia]]!)
 
@@ -213,12 +214,14 @@ Then add =tailwind.config.js=:
   }
 #+end_src
 
-We'll run a command /after/ a project has been created using our template to create a =package.json= and install some dependencies from NPM.
+We'll run a command /after/ a project has been created using our template to create a =package.json= and install
+some dependencies from NPM.
 
-We'll have to go back and edit our =template.el= file. =new-project.el= can contain a key-value pair with the key ~after~.
+We'll have to go back and edit our =template.el= file. Add a key-value pair with the key ~after~.
 
-~after~ is a list of expressions to run /after/ a project has been created using the template. =new-project.el= evaluates every expression in this list.
-if the list evaluates to a ~function~, it will be called with a single argument: ~template-data~.
+~after~ is a list of expressions to run /after/ a project has been created using the template. =prosca= evaluates
+every expression in this list.  if the list evaluates to a ~function~, it will be called with a single argument:
+~template-data~.
 
 All expressions in ~after~ are being run inside ~project-dir~, the new project created from our template.
 
@@ -244,9 +247,9 @@ takes one argument:
 #+begin_src emacs-lisp
   ((vars . ((build-css-command . (completing-read "CSS build command: " '("tailwind") nil t))))
    (after . ((lambda (template-data)
-               ;; new-project-template-val is a helper method provided to simplify
+               ;; prosca-template-val is a helper method provided to simplify
                ;; accessing template variables.
-               (when (string= "tailwind" (new-project-template-val 'css-build-tool template-data))
+               (when (string= "tailwind" (prosca-template-val 'css-build-tool template-data))
                  ;; run this command only when user chose "tailwind"
                  (async-shell-command "npm init -y && npm install -D tailwindcss")
                  )
@@ -261,9 +264,9 @@ the else clause:
 #+begin_src emacs-lisp
   ((vars . ((build-css-command . (completing-read "CSS build command: " '("tailwind") nil t))))
    (after . ((lambda (template-data)
-               ;; new-project-template-val is a helper method provided to simplify
+               ;; prosca-template-val is a helper method provided to simplify
                ;; accessing template variables.
-               (if (string= "tailwind" (new-project-template-val 'css-build-tool template-data))
+               (if (string= "tailwind" (prosca-template-val 'css-build-tool template-data))
                    ;; run this command only when user chose "tailwind"
                    (async-shell-command "npm init -y && npm install -D tailwindcss")
                  ;; run shis command when the user didnt choose "tailwind"
@@ -275,8 +278,6 @@ the else clause:
 
 ** Functions
 
-*** ~new-project-interactive~
+*** ~prosca-create-project~
 
 An interative command to create a new project. This is what I expect most to use.
-
-*** ~new-project--create~
