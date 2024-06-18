@@ -36,10 +36,10 @@
                  (prosca--load-template "./test/templates/test1/"))))
 
 
-(ert-deftest prosca--sanitize-project-name ()
-  "Tests that `prosca--sanitize-project-name' correctly sanitize project names."
+(ert-deftest prosca--sanitize-project ()
+  "Tests that `prosca--sanitize-name' correctly sanitize project names."
   (should (equal "my_very_c00l_prject"
-                 (prosca--sanitize-project-name "My! Very C00l prøject."))))
+                 (prosca--sanitize-name "My! Very C00l prøject."))))
 
 (ert-deftest prosca--find-project-templates ()
   "Tests that it lists all subdirectories of templates-dir as templates."

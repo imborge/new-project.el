@@ -1,12 +1,12 @@
-(package "new-project"
-         "20240617.4"
-         "Simple and powerful project templates")
+(package "prosca"
+         "20240618"
+         "Project Scaffold")
 
-(website-url "https://github.com/imborge/new-project.el")
+(website-url "https://github.com/imborge/prosca")
 
 (keywords "tools")
 
-(package-file "new-project.el")
+(package-file "prosca.el")
 
 (script "test" "echo \"Error: no test specified\" && exit 1")
 

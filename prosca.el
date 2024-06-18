@@ -3,9 +3,9 @@
 ;; Copyright (C) 2024  Børge André Jensen (imborge@proton.me)
 
 ;; Author: Børge André Jensen (imborge@proton.me)
-;; Version: 20240617.4
+;; Version: 20240618
 ;; Package-Requires: ((emacs "26.1") (templatel "20210902.228"))
-;; URL: https://github.com/imborge/prosca/
+;; URL: https://github.com/imborge/prosca
 ;; Keywords: tools
 
 ;; This file is not part of GNU Emacs.
@@ -118,7 +118,7 @@ FMT is a format string that may print OBJECTS."
         (goto-char (point-max))
         (insert
          (format (concat "[" (propertize "%s" 'face 'prosca-logdate-face) "] "
-                         "[" (propertize "%s" 'face 'log-level-face) "]: %s\n")
+                         "[" (propertize "%s" 'face log-level-face) "]: %s\n")
                  (format-time-string "%Y-%m-%d %H:%M:%S")
                  level
                  (apply #'format fmt objects)))))))
@@ -128,9 +128,9 @@ FMT is a format string that may print OBJECTS."
 (defun prosca-goto-last-created-project ()
   "Jump to the bookmark for the last created project."
   (interactive)
-  (if-let ((bm (prosca-last-created-project)))
+  (if-let ((bm (prosca--last-created-project-bookmark)))
       (bookmark-jump bm)
-    (prosca-log info "No bookmark saved for last created project.")))
+    (prosca--log 'info "No bookmark saved for last created project.")))
 
 (defun prosca-create-project ()
   "Interactively create a new project."
@@ -145,13 +145,13 @@ FMT is a format string that may print OBJECTS."
                     project-name
                     (expand-file-name project-template prosca-templates-dir)) ))
 
-(defun prosca--sanitize-project-name (project-name &optional keep-case)
-  "Sanitize PROJECT-NAME and converting to lowercase.
+(defun prosca--sanitize-name (name &optional keep-case)
+  "Sanitize NAME, making it safe for dir names.
 
 Replacing spaces with underscores and removing all characters
 that are not a-z, A-Z, 0-9, -, or _, and converting to lowercase
 unless KEEP-CASE is non-nil."
-  (let ((sanitized (replace-regexp-in-string " " "_" project-name)))
+  (let ((sanitized (replace-regexp-in-string " " "_" name)))
     (setq sanitized (replace-regexp-in-string "[^a-zA-Z0-9_-]" "" sanitized))
     (if keep-case
         sanitized
@@ -278,12 +278,12 @@ called with TEMPLATE-DATA as an argument."
 
 (defun prosca--create (parent-dir project-name project-template)
   "Create a new project in PARENT-DIR named PROJECT-NAME using PROJECT-TEMPLATE."
-  (let ((project-dir (expand-file-name (prosca--sanitize-project-name project-name) parent-dir)))
+  (let ((project-dir (expand-file-name (prosca--sanitize-name project-name) parent-dir)))
     (if (file-exists-p project-dir)
         (prosca--log 'error "Project directory already exists: %s" project-dir )
       (prosca--log 'info "Creating new project using '%s' as template." project-template)
       (let ((vars `((project-name . ,project-name)
-                    (sanitized-project-name . ,(prosca--sanitize-project-name project-name))
+                    (sanitized-project-name . ,(prosca--sanitize-name project-name))
                     (parent-dir . ,parent-dir)
                     (project-dir . ,project-dir)))
             (template-data (prosca--load-template project-template)))
@@ -315,7 +315,7 @@ called with TEMPLATE-DATA as an argument."
                           (template . ,project-template))
                         nil)))))
 
-(defun prosca--last-created-project ()
+(defun prosca--last-created-project-bookmark ()
   "Return the bookmark for the last created project."
   (bookmark-get-bookmark prosca-bookmark-name))
 
